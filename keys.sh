@@ -1,7 +1,12 @@
 #!/bin/bash
 
-# GitHubユーザー名
-GITHUB_USER="fumimaker"
+# 引数からGitHubユーザー名を取得。指定されていない場合はエラーメッセージを表示。
+if [ -z "$1" ]; then
+  echo "Usage: $0 <github-username>"
+  exit 1
+fi
+
+GITHUB_USER="$1"
 
 # authorized_keysのファイルパス
 AUTHORIZED_KEYS="$HOME/.ssh/authorized_keys"
