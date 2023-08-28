@@ -1,2 +1,4 @@
 # obenri-tools
-githubに登録したssh keyでローカルを更新してくれる太郎
+
+- keys.sh
+githubに登録したssh keyでローカルを更新してくれる太郎。
