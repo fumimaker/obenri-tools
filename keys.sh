@@ -8,8 +8,23 @@ fi
 
 GITHUB_USER="$1"
 
-# authorized_keysのファイルパス
-AUTHORIZED_KEYS="$HOME/.ssh/authorized_keys"
+# .sshディレクトリとauthorized_keysのパス
+SSH_DIR="$HOME/.ssh"
+AUTHORIZED_KEYS="$SSH_DIR/authorized_keys"
+
+# .sshディレクトリが存在しない場合は作成
+if [ ! -d "$SSH_DIR" ]; then
+  echo "Creating $SSH_DIR directory..."
+  mkdir -p "$SSH_DIR"
+  chmod 700 "$SSH_DIR"
+fi
+
+# authorized_keysファイルが存在しない場合は作成
+if [ ! -f "$AUTHORIZED_KEYS" ]; then
+  echo "Creating $AUTHORIZED_KEYS file..."
+  touch "$AUTHORIZED_KEYS"
+  chmod 600 "$AUTHORIZED_KEYS"
+fi
 
 # GitHubからSSH公開鍵を取得
 curl -s https://github.com/$GITHUB_USER.keys > /tmp/github_keys
