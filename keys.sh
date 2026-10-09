@@ -20,6 +20,19 @@ fi
 
 GITHUB_USER="$1"
 
+# 端末に出力するときだけ git diff のように色を付ける(NO_COLOR が設定されていれば付けない)
+if [ -t 1 ] && [ -z "${NO_COLOR:-}" ]; then
+  RED=$'\033[31m'
+  GREEN=$'\033[32m'
+  YELLOW=$'\033[33m'
+  RESET=$'\033[0m'
+else
+  RED=""
+  GREEN=""
+  YELLOW=""
+  RESET=""
+fi
+
 # .sshディレクトリとauthorized_keysのパス
 SSH_DIR="$HOME/.ssh"
 AUTHORIZED_KEYS="$SSH_DIR/authorized_keys"
@@ -33,19 +46,19 @@ STATS="$WORK_DIR/stats"
 
 # GitHubからSSH公開鍵を取得。失敗したら何も変更せずに終了する
 if ! curl -fsSL --max-time 30 "https://github.com/${GITHUB_USER}.keys" -o "$GITHUB_KEYS"; then
-  echo "Error: GitHubから '$GITHUB_USER' の鍵を取得できませんでした。何も変更していません。" >&2
+  echo "${RED}Error: GitHubから '$GITHUB_USER' の鍵を取得できませんでした。何も変更していません。${RESET}" >&2
   exit 1
 fi
 
 # 取得した内容がすべて公開鍵の形式かを確認する
 if grep -vqE '^$|^(ssh-|ecdsa-|sk-)[^ ]+ AAAA[^ ]+' "$GITHUB_KEYS"; then
-  echo "Error: GitHubから取得した内容に公開鍵ではない行があります。何も変更していません。" >&2
+  echo "${RED}Error: GitHubから取得した内容に公開鍵ではない行があります。何も変更していません。${RESET}" >&2
   exit 1
 fi
 
 # 鍵が1本もないと全部削除してしまうので中止する
 if ! grep -qE '^(ssh-|ecdsa-|sk-)' "$GITHUB_KEYS"; then
-  echo "Error: '$GITHUB_USER' にはGitHubに鍵が登録されていません。何も変更していません。" >&2
+  echo "${RED}Error: '$GITHUB_USER' にはGitHubに鍵が登録されていません。何も変更していません。${RESET}" >&2
   exit 1
 fi
 
@@ -56,7 +69,7 @@ fi
 
 # 鍵本体(AAAA...の部分)で比較し、コメントやオプションの違いは無視する。
 # 既存の行はオプション付きのまま残し、GitHubにしかない鍵は末尾に追加する。
-awk -v out="$NEW_KEYS" -v stats="$STATS" '
+awk -v out="$NEW_KEYS" -v stats="$STATS" -v red="$RED" -v green="$GREEN" -v reset="$RESET" '
   function blob(s,   n, f, i) {
     n = split(s, f, /[ \t]+/)
     for (i = 1; i <= n; i++) if (f[i] ~ /^AAAA/) return f[i]
@@ -75,15 +88,15 @@ awk -v out="$NEW_KEYS" -v stats="$STATS" '
   /^[ \t]*(#|$)/ { print > out; next }
   {
     b = blob($0)
-    if (b in seen) { print "- " short($0) " (重複)"; removed++; next }
-    if (!(b in gh)) { print "- " short($0); removed++; next }
+    if (b in seen) { print red "- " short($0) " (重複)" reset; removed++; next }
+    if (!(b in gh)) { print red "- " short($0) reset; removed++; next }
     seen[b] = 1
     print > out
   }
   END {
     for (i = 1; i <= count; i++) {
       b = order[i]
-      if (!(b in seen)) { print gh[b] > out; print "+ " short(gh[b]); added++ }
+      if (!(b in seen)) { print gh[b] > out; print green "+ " short(gh[b]) reset; added++ }
     }
     printf "%d %d\n", added, removed > stats
   }
@@ -92,11 +105,11 @@ awk -v out="$NEW_KEYS" -v stats="$STATS" '
 touch "$NEW_KEYS"
 read -r added_count removed_count < "$STATS"
 
-echo "Added $added_count new keys."
-echo "Removed $removed_count old keys."
+echo "${GREEN}Added $added_count new keys.${RESET}"
+echo "${RED}Removed $removed_count old keys.${RESET}"
 
 if [ "$DRY_RUN" -eq 1 ]; then
-  echo "(dry run: $AUTHORIZED_KEYS は変更していません)"
+  echo "${YELLOW}(dry run: $AUTHORIZED_KEYS は変更していません)${RESET}"
   exit 0
 fi
 
