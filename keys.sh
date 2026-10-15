@@ -4,13 +4,13 @@
 set -euo pipefail
 
 usage() {
-  echo "Usage: $0 [-n] <github-username>" >&2
-  echo "  -n  変更せずに、追加・削除される鍵だけを表示する" >&2
+  echo "Usage: $0 [--just-view] <github-username>" >&2
+  echo "  --just-view, -n  変更せずに、追加・削除される鍵だけを表示する" >&2
   exit 1
 }
 
 DRY_RUN=0
-if [ "${1:-}" = "-n" ]; then
+if [ "${1:-}" = "--just-view" ] || [ "${1:-}" = "-n" ]; then
   DRY_RUN=1
   shift
 fi
@@ -109,7 +109,7 @@ echo "${GREEN}Added $added_count new keys.${RESET}"
 echo "${RED}Removed $removed_count old keys.${RESET}"
 
 if [ "$DRY_RUN" -eq 1 ]; then
-  echo "${YELLOW}(dry run: $AUTHORIZED_KEYS は変更していません)${RESET}"
+  echo "${YELLOW}(just view: $AUTHORIZED_KEYS は変更していません)${RESET}"
   exit 0
 fi
 
