@@ -11,6 +11,8 @@ githubに登録したssh keyでローカルを更新してくれる太郎。
 
 `bash -s -- --just-view fumimaker` のように `--just-view` を付けると、変更せずに追加・削除される鍵だけを表示できる
 
+`bash -s -- --add-only fumimaker` のように `--add-only` を付けると、既存の鍵は削除せず、GitHubにしかない鍵を追記するだけになる（`--just-view` と組み合わせ可）
+
 - 対象は実行したユーザーの `$HOME/.ssh/authorized_keys` です（`sudo -s` で実行すると root の鍵が対象）
 - 変更前のファイルは `authorized_keys.bak.<日時>` としてバックアップされる
 - GitHubから鍵を取得できなかったときや、鍵が登録されていないときはなにも動かない

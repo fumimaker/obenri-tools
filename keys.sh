@@ -1,19 +1,26 @@
 #!/bin/bash
 # GitHubに登録したSSH公開鍵で ~/.ssh/authorized_keys を同期する。
 # GitHubにない鍵と重複した鍵は削除し、変更前のファイルは authorized_keys.bak.<日時> に残す。
+# --add-only を付けると削除はせず、GitHubにしかない鍵を追記するだけにする。
 set -euo pipefail
 
 usage() {
-  echo "Usage: $0 [--just-view] <github-username>" >&2
+  echo "Usage: $0 [--just-view] [--add-only] <github-username>" >&2
   echo "  --just-view, -n  変更せずに、追加・削除される鍵だけを表示する" >&2
+  echo "  --add-only, -a   既存の鍵は削除せず、GitHubにしかない鍵を追記するだけにする" >&2
   exit 1
 }
 
 DRY_RUN=0
-if [ "${1:-}" = "--just-view" ] || [ "${1:-}" = "-n" ]; then
-  DRY_RUN=1
-  shift
-fi
+ADD_ONLY=0
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --just-view|-n) DRY_RUN=1; shift ;;
+    --add-only|-a) ADD_ONLY=1; shift ;;
+    -*) usage ;;
+    *) break ;;
+  esac
+done
 if [ $# -ne 1 ] || [ -z "$1" ]; then
   usage
 fi
@@ -69,7 +76,8 @@ fi
 
 # 鍵本体(AAAA...の部分)で比較し、コメントやオプションの違いは無視する。
 # 既存の行はオプション付きのまま残し、GitHubにしかない鍵は末尾に追加する。
-awk -v out="$NEW_KEYS" -v stats="$STATS" -v red="$RED" -v green="$GREEN" -v reset="$RESET" '
+# add_only のときは既存の行をそのまま全部残す。
+awk -v out="$NEW_KEYS" -v stats="$STATS" -v add_only="$ADD_ONLY" -v red="$RED" -v green="$GREEN" -v reset="$RESET" '
   function blob(s,   n, f, i) {
     n = split(s, f, /[ \t]+/)
     for (i = 1; i <= n; i++) if (f[i] ~ /^AAAA/) return f[i]
@@ -86,6 +94,12 @@ awk -v out="$NEW_KEYS" -v stats="$STATS" -v red="$RED" -v green="$GREEN" -v rese
     next
   }
   /^[ \t]*(#|$)/ { print > out; next }
+  add_only {
+    b = blob($0)
+    if (b != "") seen[b] = 1
+    print > out
+    next
+  }
   {
     b = blob($0)
     if (b in seen) { print red "- " short($0) " (重複)" reset; removed++; next }
